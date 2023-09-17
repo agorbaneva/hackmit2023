@@ -66,7 +66,7 @@ time_series_data = filtered_data.melt(id_vars=['Name'], value_vars=year_columns,
 time_series_data['Year'] = time_series_data['Year'].str.extract('(\d+)').astype(int)
 
 # Plot the time series data using plotly
-fig = px.line(time_series_data, x='Year', y='Value', title=f'Time Series Data for {Name}')
+fig = px.line(time_series_data, x='Year', y='Value', title=f'CH4 Data for {Name}')
 fig.update_layout(
     xaxis = dict(
         tickmode = 'linear',
