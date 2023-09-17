@@ -4,7 +4,12 @@ import numpy as np
 import plotly.express as px
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.linear_model import LinearRegression
-from prophet import Prophet
+import requests
+from io import BytesIO
+from PIL import Image
+import folium
+from streamlit_folium import folium_static
+from urllib.parse import quote
 st.title("Breathe Easy: Shaping Tomorrow, One Model at a Time")
 
 # Load the excel file
@@ -15,6 +20,37 @@ c_group_values = data['Name'].unique()
 
 # Create a select box widget with the unique "Name" values
 Name = st.selectbox('Select Country:', c_group_values)
+
+try:
+    response = requests.get(f'https://restcountries.com/v3.1/name/{Name}')
+    country_data = response.json()[0]
+except:
+    st.write(f'Could not fetch data for {Name}.')
+    country_data = None
+
+# Create columns for layout
+col1, col2 = st.columns([1, 2])
+
+# Display flag and demographic data in the first column
+if country_data:
+    col1.image(country_data['flags']["png"], caption=Name, use_column_width=True)
+    col2.write(f"### Demographics for {Name}")
+    col2.write(f"Population: {country_data['population']}")
+    col2.write(f"Area: {country_data['area']} km²")
+    col2.write(f"Capital: {country_data['capital'][0]}")
+    # ... (add more demographic data as needed)
+else:
+    col1.write(f"No data available for {Name}")
+
+# Display map
+if country_data:
+    lat, lon = country_data['latlng']
+
+    # Create a map centered around the country coordinates
+    country_map = folium.Map(location=[lat, lon], zoom_start=6)
+    folium_static(country_map)
+else:
+    col2.write(f"No map available for {Name}")
 
 # Filter the data based on the selected "Name" value
 filtered_data = data[data['Name'] == Name]
