@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.linear_model import LinearRegression
 import requests
@@ -63,9 +66,15 @@ time_series_data = filtered_data.melt(id_vars=['Name'], value_vars=year_columns,
 time_series_data['Year'] = time_series_data['Year'].str.extract('(\d+)').astype(int)
 
 # Plot the time series data using plotly
-fig = px.line(time_series_data, x='Year', y='Value', title=f'Greenhouse Gas Emissions: CH4 for {Name}')
+fig = px.line(time_series_data, x='Year', y='Value', title=f'Time Series Data for {Name}')
+fig.update_layout(
+    xaxis = dict(
+        tickmode = 'linear',
+        tick0 = 1970,
+        dtick = 2
+    )
+)
 st.plotly_chart(fig)
-
 
 # Prepare data for modeling
 
@@ -74,11 +83,23 @@ try:
     arima_model = ARIMA(time_series_data['Value'].dropna(), order=(5,1,0))
     arima_model_fit = arima_model.fit()
     arima_forecast = arima_model_fit.forecast(steps=10)
-    forecast_years = np.arange(time_series_data['Year'].max() + 1, time_series_data['Year'].max() + 11)
+    forecast_years = np.arange(time_series_data['Year'].max(), time_series_data['Year'].max() + 10)
     arima_forecast_df = pd.DataFrame({'Year': forecast_years, 'Value': arima_forecast})
-    combined_data = pd.concat([time_series_data, arima_forecast_df], ignore_index=True)
     
-    fig_arima = px.line(combined_data, x='Year', y='Value', title='ARIMA Forecast')
+    line_1 = go.Line(x=time_series_data['Year'], y=time_series_data['Value'], name="Previous Years")
+    line_2 = go.Line(x=arima_forecast_df['Year'], y=arima_forecast_df['Value'], name="Prediction",  marker=dict(opacity=0))
+
+    fig_arima = make_subplots()
+    fig_arima.add_trace(line_1)
+    fig_arima.add_trace(line_2)
+    fig_arima.update_layout(
+        title="ARIMA Prediction", 
+        xaxis = dict(
+            tickmode = 'linear',
+            tick0 = 1970,
+            dtick = 2
+        )
+    )
     st.plotly_chart(fig_arima)
 except Exception as e:
     st.write('Error in ARIMA model:', str(e))
@@ -92,11 +113,24 @@ try:
     
     X_future = np.arange(X.min(), X.max() + 11).reshape(-1,1)
     lr_forecast = lr_model.predict(X_future)
-    forecast_years = np.arange(time_series_data['Year'].max() + 1, time_series_data['Year'].max() + 11)
+    forecast_years = np.arange(time_series_data['Year'].max(), time_series_data['Year'].max() + 10)
     lr_forecast_df = pd.DataFrame({'Year': forecast_years, 'Value': lr_forecast[-10:]})
-    combined_data = pd.concat([time_series_data, lr_forecast_df], ignore_index=True)
+    # combined_data = pd.concat([time_series_data, lr_forecast_df], ignore_index=True)
+    line_1 = go.Line(x=time_series_data['Year'], y=time_series_data['Value'], name="Previous Years")
+    line_2 = go.Line(x=lr_forecast_df['Year'], y=lr_forecast_df['Value'], name="Prediction",  marker=dict(opacity=0))
 
-    fig_lr = px.line(combined_data, x='Year', y='Value', title='Linear Regression Forecast')
+    fig_lr = make_subplots()
+    fig_lr.add_trace(line_1)
+    fig_lr.add_trace(line_2)
+    fig_lr.update_layout(
+        title="Linear Regression Prediction", 
+        xaxis = dict(
+            tickmode = 'linear',
+            tick0 = 1970,
+            dtick = 2
+        )
+    )
+    
     st.plotly_chart(fig_lr)
 except Exception as e:
     st.write('Error in Linear Regression model:', str(e))
